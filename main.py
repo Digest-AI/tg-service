@@ -6,28 +6,17 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot
 from django.conf import settings
-
-from handlers import help, start, subscription
-from middlewares.check_linked import CheckLinkedMiddleware
 
 
 async def main() -> None:
     bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
-    dp = Dispatcher()
-
-    dp.message.outer_middleware(CheckLinkedMiddleware())
-
-    dp.include_router(start.router)
-    dp.include_router(subscription.router)
-    dp.include_router(help.router)
-
-    await dp.start_polling(bot)
+    webhook_url = f"{settings.WEBHOOK_HOST}/api/webhook/"
+    await bot.set_webhook(webhook_url)
+    print(f"Webhook set: {webhook_url}")
+    await bot.session.close()
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    asyncio.run(main())

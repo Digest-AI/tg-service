@@ -63,6 +63,12 @@ curl -X POST http://localhost:8160/api/verification-codes/verify/ \
   -d '{"code": "B5EMNP", "publicId": "user-uuid-from-main-service"}'
 ```
 
+**Для Telegram (webhook)**
+
+| Метод | URL | Описание |
+|---|---|---|
+| `POST` | `/api/webhook/` | Принимает обновления от Telegram |
+
 **Для recommendations-service**
 
 | Метод | URL | Описание |
@@ -122,10 +128,26 @@ python manage.py sendnotification <TELEGRAM_ID> --type reminder
 
 Сервер запустится на localhost:8160
 
-Для запуска бота:
+Для запуска бота через webhook:
 
 6. Заполнить `.env` (скопировать `.env.example` если есть, или создать вручную)
-7. `python main.py`
+7. Запустить ngrok: `ngrok http 8160`
+8. Добавить ngrok URL в `.env` → `WEBHOOK_HOST=https://xxx.ngrok-free.app`
+9. Добавить ngrok хост в `ALLOWED_HOSTS` в `.env`
+10. Зарегистрировать webhook: `python main.py`
+
+Проверить статус webhook:
+```powershell
+Invoke-WebRequest "https://api.telegram.org/bot<TOKEN>/getWebhookInfo" | Select-Object -ExpandProperty Content
+```
+
+Тест webhook вручную:
+```powershell
+Invoke-WebRequest -Uri "http://localhost:8160/api/webhook/" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body '{"update_id":1,"message":{"message_id":1,"from":{"id":123,"is_bot":false,"first_name":"Test","username":"testuser"},"chat":{"id":123,"type":"private"},"date":1234567890,"text":"/start"}}'
+```
 
 ---
 
@@ -141,3 +163,4 @@ python manage.py sendnotification <TELEGRAM_ID> --type reminder
 | `SERVICE_ID` | Идентификатор сервиса (`tg-service`) |
 | `SERVICE_SECRET` | Секрет для межсервисной аутентификации |
 | `TELEGRAM_BOT_TOKEN` | Токен бота от @BotFather |
+| `WEBHOOK_HOST` | Публичный HTTPS URL для webhook (например ngrok URL) |
