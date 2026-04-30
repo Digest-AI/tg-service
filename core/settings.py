@@ -21,6 +21,9 @@ CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS").split(",")
 SERVICE_ID = os.environ.get("SERVICE_ID")
 SERVICE_SECRET = os.environ.get("SERVICE_SECRET")
 
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+WEBHOOK_HOST = os.environ.get("WEBHOOK_HOST")
+
 
 # Installed Apps
 

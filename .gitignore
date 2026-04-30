@@ -146,6 +146,7 @@ temp/
 /json
 *.env
 *.pyc
+ngrok.exe
 
 # Node.js
 node_modules/
