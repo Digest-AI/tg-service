@@ -6,12 +6,16 @@ from datetime import datetime
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from django.conf import settings
+from django.core.cache import cache
 
 from api.models import User
 from services.parser import get_events_by_daterange
 from services.recommendations import get_all_new_recommendations
 
 logger = logging.getLogger(__name__)
+
+_LOCK_KEY = "morning_digest_running"
+_LOCK_TTL = 3600  # 1 hour hard ceiling — prevents stale lock on crash
 
 
 def _format_date(date_str: str | None) -> str:
@@ -62,6 +66,17 @@ async def _send_events(telegram_id: str, events: list[dict]) -> None:
 
 
 def morning_digest_job() -> None:
+    if not cache.add(_LOCK_KEY, True, _LOCK_TTL):
+        logger.warning("Morning digest already running, skipping duplicate execution")
+        return
+
+    try:
+        _run_digest()
+    finally:
+        cache.delete(_LOCK_KEY)
+
+
+def _run_digest() -> None:
     logger.info("Morning digest job started")
 
     # Step 1: single request — all new recommendations across all users
@@ -124,3 +139,4 @@ def morning_digest_job() -> None:
             logger.exception("Failed to send digest to telegram_id=%s", user.telegram_id)
 
     logger.info("Morning digest job completed")
+
