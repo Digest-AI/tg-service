@@ -22,7 +22,6 @@ SERVICE_ID = os.environ.get("SERVICE_ID")
 SERVICE_SECRET = os.environ.get("SERVICE_SECRET")
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-WEBHOOK_HOST = os.environ.get("WEBHOOK_HOST")
 
 RECOMMENDATIONS_SERVICE_URL = os.environ.get("RECOMMENDATIONS_SERVICE_URL")
 PARSER_SERVICE_URL = os.environ.get("PARSER_SERVICE_URL")
@@ -90,8 +89,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": [
         "utils.parsers.CamelCaseJSONParser",
     ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": [
-        "utils.permissions.IsInternalService",
+        "rest_framework.permissions.AllowAny",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "utils.exception_handler.exception_handler",

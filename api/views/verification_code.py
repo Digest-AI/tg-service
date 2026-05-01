@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,9 +7,19 @@ from rest_framework.views import APIView
 from api.models import User, VerificationCode
 from api.serializers import UserSerializer, VerifyCodeSerializer
 from utils.exceptions.classes import BadRequest, NotFound
+from utils.exceptions.schema import errors
 
 
 class VerifyCodeView(APIView):
+    @extend_schema(
+        summary="Verify Telegram link code",
+        request=VerifyCodeSerializer,
+        responses={
+            status.HTTP_201_CREATED: UserSerializer,
+            **errors(BadRequest, NotFound),
+        },
+        tags=["users"],
+    )
     def post(self, request: Request) -> Response:
         serializer = VerifyCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

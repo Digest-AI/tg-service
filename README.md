@@ -51,9 +51,9 @@ Telegram-бот сервис для платформы Digest.ai. Отвечае
 |---|---|---|
 | `GET` | `/api/users/` | Список пользователей |
 | `POST` | `/api/users/` | Создать пользователя |
-| `GET` | `/api/users/{id}/` | Получить пользователя |
-| `PATCH` | `/api/users/{id}/` | Обновить пользователя |
-| `DELETE` | `/api/users/{id}/` | Удалить пользователя |
+| `GET` | `/api/users/{publicId}/` | Получить пользователя по `public_id` |
+| `PATCH` | `/api/users/{publicId}/` | Обновить пользователя по `public_id` |
+| `DELETE` | `/api/users/{publicId}/` | Удалить пользователя по `public_id` |
 | `POST` | `/api/verification-codes/verify/` | Верифицировать код привязки |
 
 Пример верификации кода:
@@ -132,9 +132,9 @@ python manage.py sendnotification <TELEGRAM_ID> --type reminder
 
 6. Заполнить `.env` (скопировать `.env.example` если есть, или создать вручную)
 7. Запустить ngrok: `ngrok http 8160`
-8. Добавить ngrok URL в `.env` → `WEBHOOK_HOST=https://xxx.ngrok-free.app`
+8. В `.env` задать публичный хост **без схемы** в `HOST` (например `xxx.ngrok-free.app` или `localhost:8160`). Схема (`http`/`https`) берётся из `SELF_URL` автоматически (`DEBUG` → http, `production` → https).
 9. Добавить ngrok хост в `ALLOWED_HOSTS` в `.env`
-10. Зарегистрировать webhook: `python main.py`
+10. Webhook в Telegram регистрируется **при старте WSGI/ASGI** (например при `runserver`). При необходимости обновить вручную: `python main.py`
 
 Проверить статус webhook:
 ```powershell
@@ -157,10 +157,9 @@ Invoke-WebRequest -Uri "http://localhost:8160/api/webhook/" `
 |---|---|
 | `SECRET_KEY` | Django secret key |
 | `ENVIRONMENT` | `development` или `production` |
-| `HOST` | Хост сервера |
+| `HOST` | Публичный хост сервера **без** `http(s)://`, например `example.com` или `localhost:8160`; из него собирается `SELF_URL` для webhook и ссылок |
 | `ALLOWED_HOSTS` | Разрешённые хосты через запятую |
 | `CORS_ALLOWED_ORIGINS` | Разрешённые origins через запятую |
 | `SERVICE_ID` | Идентификатор сервиса (`tg-service`) |
 | `SERVICE_SECRET` | Секрет для межсервисной аутентификации |
 | `TELEGRAM_BOT_TOKEN` | Токен бота от @BotFather |
-| `WEBHOOK_HOST` | Публичный HTTPS URL для webhook (например ngrok URL) |
