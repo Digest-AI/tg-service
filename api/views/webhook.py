@@ -13,7 +13,11 @@ from dispatcher import dp
 @method_decorator(csrf_exempt, name="dispatch")
 class TelegramWebhookView(View):
     def post(self, request) -> HttpResponse:
-        update = Update.model_validate_json(request.body)
+        try:
+            update = Update.model_validate_json(request.body)
+        except Exception:
+            # Always return 200 to Telegram — non-200 causes infinite retries
+            return HttpResponse(status=200)
 
         async def handle() -> None:
             bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)

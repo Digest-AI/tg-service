@@ -90,6 +90,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": [
         "utils.parsers.CamelCaseJSONParser",
     ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "utils.permissions.IsInternalService",
+    ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "utils.exception_handler.exception_handler",
 }
