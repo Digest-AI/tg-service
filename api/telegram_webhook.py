@@ -1,8 +1,9 @@
 import asyncio
 import logging
 
-from aiogram import Bot
 from django.conf import settings
+
+from services.telegram_bot import make_bot
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ async def _set_webhook_async() -> None:
         return
 
     webhook_url = f"{base}/api/webhook/"
-    bot = Bot(token=token)
+    bot = make_bot(token)
     try:
         await bot.set_webhook(webhook_url)
         logger.info("Telegram webhook registered: %s", webhook_url)

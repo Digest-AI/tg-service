@@ -163,3 +163,4 @@ Invoke-WebRequest -Uri "http://localhost:8160/api/webhook/" `
 | `SERVICE_ID` | Идентификатор сервиса (`tg-service`) |
 | `SERVICE_SECRET` | Секрет для межсервисной аутентификации |
 | `TELEGRAM_BOT_TOKEN` | Токен бота от @BotFather |
+| `TELEGRAM_HTTP_PROXY` | Необязательно. HTTP(S)-прокси для исходящих запросов Bot API (aiogram/aiohttp). На **PythonAnywhere** бесплатном тарифе, если переменная **не задана**, при наличии `PYTHONANYWHERE_DOMAIN` используется `http://proxy.server:3128` ([документация PA](https://help.pythonanywhere.com/pages/403ForbiddenError/)). На платном тарифе без прокси задайте переменную как пустую строку в окружении веб-приложения, чтобы отключить автопрокси. |

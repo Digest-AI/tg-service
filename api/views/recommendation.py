@@ -1,7 +1,5 @@
 from asgiref.sync import async_to_sync
-from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +7,7 @@ from rest_framework.views import APIView
 
 from api.models import User
 from api.serializers import RecommendationSerializer
+from services.telegram_bot import make_bot
 from utils.exceptions.classes import NotFound
 
 
@@ -35,7 +34,7 @@ class RecommendationView(APIView):
         ])
 
         async def send() -> None:
-            bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+            bot = make_bot()
             await bot.send_message(user.telegram_id, text, parse_mode="HTML", reply_markup=keyboard)
             await bot.session.close()
 

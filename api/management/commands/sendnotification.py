@@ -1,9 +1,9 @@
 import asyncio
 
-from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
+
+from services.telegram_bot import make_bot
 
 
 class Command(BaseCommand):
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         asyncio.run(self._send(kwargs["telegram_id"], kwargs["notification_type"]))
 
     async def _send(self, telegram_id: str, notification_type: str) -> None:
-        bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+        bot = make_bot()
 
         if notification_type == "recommendation":
             text = (

@@ -3,7 +3,6 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 
-from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from django.conf import settings
 from django.core.cache import cache
@@ -11,6 +10,7 @@ from django.core.cache import cache
 from api.models import User
 from services.parser import get_events_by_daterange
 from services.recommendations import get_all_new_recommendations
+from services.telegram_bot import make_bot
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def _build_message(event: dict) -> tuple[str, InlineKeyboardMarkup]:
 
 
 async def _send_events(telegram_id: str, events: list[dict]) -> None:
-    bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+    bot = make_bot()
     try:
         for event in events:
             text, keyboard = _build_message(event)

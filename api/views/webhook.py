@@ -1,13 +1,12 @@
-from aiogram import Bot
 from aiogram.types import Update
 from asgiref.sync import async_to_sync
-from django.conf import settings
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from dispatcher import dp
+from services.telegram_bot import make_bot
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -20,7 +19,7 @@ class TelegramWebhookView(View):
             return HttpResponse(status=200)
 
         async def handle() -> None:
-            bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+            bot = make_bot()
             try:
                 await dp.feed_update(bot, update)
             finally:
