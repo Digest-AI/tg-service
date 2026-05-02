@@ -4,11 +4,10 @@ from collections import defaultdict
 from datetime import datetime
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from django.conf import settings
 from django.core.cache import cache
 
 from api.models import User
-from services.parser import get_events_by_daterange
+from services.parser import get_events_by_ids
 from services.recommendations import get_all_new_recommendations
 from services.telegram_bot import make_bot
 
@@ -16,6 +15,31 @@ logger = logging.getLogger(__name__)
 
 _LOCK_KEY = "morning_digest_running"
 _LOCK_TTL = 3600  # 1 hour hard ceiling — prevents stale lock on crash
+
+
+def _rec_user_id(rec: dict) -> str | None:
+    raw = (
+        rec.get("user_id")
+        or rec.get("userId")
+        or rec.get("public_id")
+        or rec.get("publicId")
+    )
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    return s or None
+
+
+def _rec_event_id(rec: dict) -> int | None:
+    raw = rec.get("event_id")
+    if raw is None:
+        raw = rec.get("eventId")
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
 
 
 def _format_date(date_str: str | None) -> str:
@@ -29,19 +53,46 @@ def _format_date(date_str: str | None) -> str:
 
 
 def _event_url(event: dict) -> str:
-    if event.get("url"):
-        return event["url"]
+    url = event.get("url")
+    if url:
+        return str(url)
+    tickets = event.get("tickets_url")
+    if tickets:
+        return str(tickets)
     ticket_links = event.get("ticketLinks") or {}
     if ticket_links:
-        return next(iter(ticket_links.values()))
+        return str(next(iter(ticket_links.values())))
     return ""
 
 
+def _event_title(event: dict) -> str:
+    return (
+        event.get("title")
+        or event.get("titleRu")
+        or event.get("title_ru")
+        or event.get("title_ro")
+        or event.get("titleRo")
+        or "Событие"
+    )
+
+
+def _event_description(event: dict) -> str:
+    return (
+        event.get("description")
+        or event.get("descriptionRu")
+        or event.get("description_ru")
+        or event.get("description_ro")
+        or event.get("descriptionRo")
+        or ""
+    )
+
+
 def _build_message(event: dict) -> tuple[str, InlineKeyboardMarkup]:
-    title = event.get("title") or event.get("titleRu") or "Событие"
-    date_str = _format_date(event.get("dateStart") or event.get("date_start"))
-    description = (event.get("description") or event.get("descriptionRu") or "")[:300]
-    url = _event_url(event)
+    title = _event_title(event)
+    date_raw = event.get("dateStart") or event.get("date_start")
+    date_str = _format_date(date_raw)
+    description = _event_description(event)[:300]
+    url = _event_url(event) or "https://digest.ai"
 
     text = (
         "💡 Вам может быть интересно\n\n"
@@ -79,58 +130,45 @@ def morning_digest_job() -> None:
 def _run_digest() -> None:
     logger.info("Morning digest job started")
 
-    # Step 1: single request — all new recommendations across all users
+    users_by_public_id = {u.public_id: u for u in User.objects.all()}
+    events_by_public_id: dict[str, list[int]] = defaultdict(list)
+    seen_ids: dict[str, set[int]] = defaultdict(set)
+
     all_recs = get_all_new_recommendations()
-    if not all_recs:
-        logger.info("No new recommendations")
-        return
-
-    # Step 2: group events by publicId
-    events_by_public_id: dict[str, list[dict]] = defaultdict(list)
     for rec in all_recs:
-        public_id = rec.get("publicId") or rec.get("public_id") or rec.get("userId")
-        event = rec.get("event")
-        if public_id and event:
-            events_by_public_id[public_id].append(event)
+        uid = _rec_user_id(rec)
+        if not uid:
+            logger.debug("Recommendation row without user id, skipping: %s", rec)
+            continue
+        eid = _rec_event_id(rec)
+        if eid is None:
+            continue
+        if eid not in seen_ids[uid]:
+            seen_ids[uid].add(eid)
+            events_by_public_id[uid].append(eid)
 
-    if not events_by_public_id:
-        logger.info("No recommendations with event data")
+    if not any(events_by_public_id.values()):
+        logger.info("No new recommendation event ids in batch response")
         return
 
-    # Step 3: compute overall date range from all events
-    all_dates = [
-        (event.get("dateStart") or event.get("date_start") or "")[:10]
-        for events in events_by_public_id.values()
-        for event in events
-    ]
-    all_dates = [d for d in all_dates if d]
+    all_ids: set[int] = set()
+    for ids in events_by_public_id.values():
+        all_ids.update(ids)
 
-    if not all_dates:
-        logger.info("No event dates found in recommendations")
-        return
+    events_by_id = get_events_by_ids(list(all_ids))
+    missing = all_ids - {int(k) for k in events_by_id if k.isdigit()}
+    for mid in missing:
+        logger.warning("Parser omitted or inactive event id=%s", mid)
 
-    date_from = min(all_dates)
-    date_to = max(all_dates)
-    logger.info("Fetching parser events for range %s – %s", date_from, date_to)
-
-    # Step 4: get fresh event data from parser for that date range
-    parser_events = get_events_by_daterange(date_from, date_to)
-    events_by_id = {str(e["id"]): e for e in parser_events}
-
-    # Step 5: send each user their recommended events (enriched with fresh parser data)
-    users_qs = User.objects.filter(public_id__in=events_by_public_id.keys())
-    users_by_public_id = {u.public_id: u for u in users_qs}
-
-    for public_id, events in events_by_public_id.items():
+    for public_id, event_ids in events_by_public_id.items():
         user = users_by_public_id.get(public_id)
         if not user:
             logger.warning("No tg user found for public_id=%s", public_id)
             continue
 
-        fresh_events = [
-            events_by_id.get(str(event.get("id")), event)
-            for event in events
-        ]
+        fresh_events = [events_by_id[str(i)] for i in event_ids if str(i) in events_by_id]
+        if not fresh_events:
+            continue
 
         try:
             asyncio.run(_send_events(user.telegram_id, fresh_events))
@@ -139,4 +177,3 @@ def _run_digest() -> None:
             logger.exception("Failed to send digest to telegram_id=%s", user.telegram_id)
 
     logger.info("Morning digest job completed")
-

@@ -1,0 +1,645 @@
+openapi: 3.0.3
+info:
+  title: Recommendations API
+  version: 1.0.0
+paths:
+  /api/interactions/:
+    post:
+      operationId: record_interaction
+      description: POST /api/interactions/ — record a user signal (view/click/save/...).
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Interaction'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Interaction'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 400
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Bad request.
+  /api/jobs/daily-refresh/:
+    post:
+      operationId: trigger_daily_refresh
+      description: |-
+        POST /api/jobs/daily-refresh/
+
+        Fetches today's scraped events from the parser ``/api/events/scraped-on/``,
+        rebuilds recommendations per user profile (numeric ``event_id`` only).
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyRefreshStats'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 403
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Forbidden.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 500
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Internal server error.
+  /api/profiles/:
+    post:
+      operationId: create_user_profile
+      description: POST /api/profiles/ — create a profile (request body must include
+        user_id).
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfile'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 400
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Bad request.
+  /api/profiles/{user_id}/:
+    get:
+      operationId: get_user_profile
+      description: GET / PATCH / DELETE /api/profiles/<user_id>/.
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 404
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Not found.
+    patch:
+      operationId: update_user_profile
+      description: GET / PATCH / DELETE /api/profiles/<user_id>/.
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfile'
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 400
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Bad request.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 404
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Not found.
+    delete:
+      operationId: delete_user_profile
+      description: GET / PATCH / DELETE /api/profiles/<user_id>/.
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '204':
+          description: No response body
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 404
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Not found.
+  /api/recommendations/:
+    get:
+      operationId: list_recommendations
+      description: |-
+        GET /api/recommendations/?userId=...
+
+        Rows below ``RECOMMENDATION_MIN_SCORE_API`` stay in DB but are omitted here.
+        Fields: ``rank``, ``score``, ``is_new``, ``event_id``.
+      parameters:
+      - in: query
+        name: user_id
+        schema:
+          type: string
+          minLength: 1
+        required: true
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recommendation'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 400
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Bad request.
+  /api/recommendations/new/:
+    get:
+      operationId: list_new_recommendations
+      description: |-
+        GET /api/recommendations/new/[?userId=]
+
+        Only ``is_new=True``, same score floor as the main recommendations list.
+      parameters:
+      - in: query
+        name: user_id
+        schema:
+          type: string
+          default: ''
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recommendation'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorResponse:
+                  value:
+                    code: 400
+                    detail: ''
+                    attr: null
+                  summary: Error Response
+          description: Bad request.
+  /schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+components:
+  schemas:
+    DailyRefreshStats:
+      type: object
+      properties:
+        fetched:
+          type: integer
+        users_processed:
+          type: integer
+        recommendations_created:
+          type: integer
+      required:
+      - fetched
+      - recommendations_created
+      - users_processed
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          readOnly: true
+          description: HTTP status code
+        detail:
+          type: string
+          readOnly: true
+          description: Error detail/message
+        attr:
+          type: string
+          readOnly: true
+          nullable: true
+          description: Field name or attribute that the error relates to
+      required:
+      - attr
+      - code
+      - detail
+    Interaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: string
+          maxLength: 64
+        event_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - event_id
+      - id
+      - kind
+      - user_id
+    KindEnum:
+      enum:
+      - view
+      - click
+      - save
+      - ticket_click
+      - dismiss
+      type: string
+      description: |-
+        * `view` - View
+        * `click` - Click
+        * `save` - Save
+        * `ticket_click` - Ticket click
+        * `dismiss` - Dismiss
+    LanguageEnum:
+      enum:
+      - en
+      - ru
+      - ro
+      type: string
+      description: |-
+        * `en` - English
+        * `ru` - Русский
+        * `ro` - Română
+    PatchedUserProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          maxLength: 64
+        tg_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        preferred_categories: {}
+        preferred_raw_categories: {}
+        home_city:
+          type: string
+          maxLength: 128
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+        max_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        free_only:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    Recommendation:
+      type: object
+      properties:
+        rank:
+          type: integer
+          readOnly: true
+        score:
+          type: number
+          format: double
+          readOnly: true
+        is_new:
+          type: boolean
+          readOnly: true
+        event_id:
+          type: integer
+          readOnly: true
+      required:
+      - event_id
+      - is_new
+      - rank
+      - score
+    UserProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          maxLength: 64
+        tg_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        preferred_categories: {}
+        preferred_raw_categories: {}
+        home_city:
+          type: string
+          maxLength: 128
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+        max_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        free_only:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - updated_at
+      - user_id
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

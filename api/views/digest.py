@@ -15,10 +15,10 @@ class MorningDigestTriggerView(APIView):
     @extend_schema(
         summary="Run morning digest",
         description=(
-            "Loads new recommendations from the recommendations service, "
-            "refreshes event data from the parser for the relevant date range, "
-            "and sends Telegram messages to linked users. "
-            "Use from cron or another HTTP scheduler instead of an in-process cron."
+            "Loads all new recommendations in one request "
+            "(GET /api/recommendations/new/ without user_id), "
+            "groups rows by user id, fetches events via POST /api/events/by-ids/ (batched), "
+            "and sends Telegram messages to linked users only. Trigger via cron with POST."
         ),
         request=MorningDigestTriggerRequestSerializer,
         responses={

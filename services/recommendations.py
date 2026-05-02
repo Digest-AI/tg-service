@@ -6,27 +6,36 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def _base_url() -> str:
+    return (settings.RECOMMENDATIONS_SERVICE_URL or "").rstrip("/")
+
+
+def _service_headers() -> dict[str, str]:
+    sid = getattr(settings, "SERVICE_ID", None) or ""
+    secret = getattr(settings, "SERVICE_SECRET", None) or ""
+    if not sid or not secret:
+        return {}
+    return {"X-Service-Id": sid, "X-Service-Secret": secret}
+
+
 def get_all_new_recommendations() -> list[dict]:
-    """Fetch all new recommendations across all users from recommendations-service.
+    """``GET /api/recommendations/new/`` без ``user_id`` — все новые рекомендации сразу.
 
-    Returns a flat list of recommendation objects, each containing:
-      - publicId (str): the user's public_id
-      - event (dict): event data with dateStart, dateEnd, id, url, etc.
-
-    Does NOT trigger any state change on the recommendations-service side (is_new stays True).
+    В каждой строке ожидаются как минимум ``event_id`` и идентификатор пользователя
+    (``user_id`` / ``userId`` или ``public_id`` / ``publicId``).
     """
+    base = _base_url()
+    if not base:
+        return []
     try:
         response = requests.get(
-            f"{settings.RECOMMENDATIONS_SERVICE_URL}/api/recommendations/",
-            params={"isNew": "true"},
-            headers={
-                "X-Service-Id": settings.SERVICE_ID,
-                "X-Service-Secret": settings.SERVICE_SECRET,
-            },
-            timeout=10,
+            f"{base}/api/recommendations/new/",
+            headers=_service_headers(),
+            timeout=60,
         )
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return data if isinstance(data, list) else []
     except Exception:
-        logger.exception("Failed to fetch new recommendations")
+        logger.exception("Failed to fetch all new recommendations")
         return []
