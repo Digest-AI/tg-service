@@ -23,10 +23,16 @@ SERVICE_SECRET = os.environ.get("SERVICE_SECRET")
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
-# aiohttp must use PA outbound proxy on free tier (see help.pythonanywhere.com/pages/403ForbiddenError/)
+# aiohttp must use PA outbound proxy on free tier (see help.pythonanywhere.com/pages/403ForbiddenError/).
+# Web workers often do not set PYTHONANYWHERE_DOMAIN — also infer from HOST / ALLOWED_HOSTS.
+_pa_host_hint = (
+    bool(os.environ.get("PYTHONANYWHERE_DOMAIN"))
+    or ".pythonanywhere.com" in (os.environ.get("HOST") or "").lower()
+    or "pythonanywhere.com" in (os.environ.get("ALLOWED_HOSTS") or "").lower()
+)
 if "TELEGRAM_HTTP_PROXY" in os.environ:
     TELEGRAM_HTTP_PROXY = (os.environ.get("TELEGRAM_HTTP_PROXY") or "").strip() or None
-elif os.environ.get("PYTHONANYWHERE_DOMAIN"):
+elif _pa_host_hint:
     TELEGRAM_HTTP_PROXY = "http://proxy.server:3128"
 else:
     TELEGRAM_HTTP_PROXY = None
