@@ -128,6 +128,14 @@ python manage.py sendnotification <TELEGRAM_ID> --type reminder
 
 Сервер запустится на localhost:8160
 
+### PythonAnywhere
+
+В **Web → Environment variables** задайте те же переменные, что и в `.env` (часто файл `.env` веб-приложение **не подхватывает**, если вы его не читаете сами — у вас он подхватывается через `python-dotenv`). Если бот не может достучаться до Telegram (`Cannot connect to host api.telegram.org`), добавьте явно:
+
+`TELEGRAM_HTTP_PROXY` = `http://proxy.server:3128`
+
+После изменений нажмите **Reload** у веб-приложения.
+
 Для запуска бота через webhook:
 
 6. Заполнить `.env` (скопировать `.env.example` если есть, или создать вручную)
@@ -163,4 +171,4 @@ Invoke-WebRequest -Uri "http://localhost:8160/api/webhook/" `
 | `SERVICE_ID` | Идентификатор сервиса (`tg-service`) |
 | `SERVICE_SECRET` | Секрет для межсервисной аутентификации |
 | `TELEGRAM_BOT_TOKEN` | Токен бота от @BotFather |
-| `TELEGRAM_HTTP_PROXY` | Необязательно. HTTP(S)-прокси для исходящих запросов Bot API (aiogram/aiohttp). На **PythonAnywhere** бесплатном тарифе, если переменная **не задана**, при наличии `PYTHONANYWHERE_DOMAIN` используется `http://proxy.server:3128` ([документация PA](https://help.pythonanywhere.com/pages/403ForbiddenError/)). На платном тарифе без прокси задайте переменную как пустую строку в окружении веб-приложения, чтобы отключить автопрокси. |
+| `TELEGRAM_HTTP_PROXY` | Необязательно. HTTP-прокси для исходящих запросов Bot API (aiogram → aiohttp). На **PythonAnywhere** если переменная **не задана**, прокси **`http://proxy.server:3128`** включается автоматически, когда в **`HOST`** или **`ALLOWED_HOSTS`** есть `pythonanywhere.com`, либо задан **`PYTHONANYWHERE_DOMAIN`**. Если авто не срабатывает — задайте явно: **`TELEGRAM_HTTP_PROXY=http://proxy.server:3128`** в разделе Web → Environment variables (или в `.env`). Чтобы **отключить** прокси, задайте переменную пустой строкой. См. [документацию PA о прокси](https://help.pythonanywhere.com/pages/403ForbiddenError/). |

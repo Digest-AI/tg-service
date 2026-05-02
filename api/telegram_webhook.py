@@ -14,9 +14,12 @@ async def _set_webhook_async() -> None:
         logger.warning("TELEGRAM_BOT_TOKEN is not set; skipping Telegram webhook setup")
         return
 
-    base = (settings.SELF_URL or "").strip().rstrip("/")
+    # base = (settings.SELF_URL or "").strip().rstrip("/")
+    base = "https://digestaitg.pythonanywhere.com"
     if not base:
-        logger.warning("SELF_URL is empty (check HOST); skipping Telegram webhook setup")
+        logger.warning(
+            "SELF_URL is empty (check HOST); skipping Telegram webhook setup"
+        )
         return
 
     webhook_url = f"{base}/api/webhook/"
