@@ -167,3 +167,5 @@ instance/
 
 # Scrapy
 .scrapy
+
+/static
